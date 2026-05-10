@@ -1,0 +1,44 @@
+/middleware
+package middleware
+
+import (
+    "net/http"
+)
+
+func AuthMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        token := r.Header.Get("Authorization")
+
+        if token == "" {
+            http.Error(w, "Unauthorized", http.StatusUnauthorized)
+            return
+        }
+
+        // TODO: validate your JWT token here
+
+        next.ServeHTTP(w, r) // ✅ pass to next handler if authenticated
+    })
+}
+
+/routes
+package routes
+
+import (
+    "github.com/go-chi/chi/v5"
+    "sanctuary_server/middleware"
+    "sanctuary_server/handlers"
+)
+
+func UserRoutes(r *chi.Mux) {
+    // Public routes — no auth needed
+    r.Post("/login", handlers.Login)
+    r.Post("/register", handlers.Register)
+
+    // Protected routes — auth required
+    r.Group(func(r chi.Router) {
+        r.Use(middleware.AuthMiddleware)
+        r.Get("/users", handlers.GetUsers)
+        r.Delete("/users/{id}", handlers.DeleteUser)
+    })
+}
+
